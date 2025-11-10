@@ -13,9 +13,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Usuario {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
+  senha     String
   createdAt DateTime @default(now())
+}
+
+model Product {
+  id            Int         @id @default(autoincrement())
+  code          String      @unique
+  name          String
+  type          ProductType
+  unit          String
+  currentStock  Float       @default(0)
+  reservedStock Float       @default(0)
+  minStock      Float       @default(0)
+  bom           BOM?        @relation("ProductToBOM")
+  materialsUsed BOMItem[]   @relation("MaterialToBOMItem")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model BOM {
+  id        Int       @id @default(autoincrement())
+  productId Int       @unique
+  product   Product   @relation("ProductToBOM", fields: [productId], references: [id])
+  materials BOMItem[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model BOMItem {
+  id         Int     @id @default(autoincrement())
+  bomId      Int
+  materialId Int
+  bom        BOM     @relation(fields: [bomId], references: [id])
+  material   Product @relation("MaterialToBOMItem", fields: [materialId], references: [id])
+  quantity   Float
+}
+
+enum ProductType {
+  MP // Matéria-Prima
+  PA // Produto Acabado
 }
