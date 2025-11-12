@@ -19,21 +19,28 @@ model Usuario {
   email     String   @unique
   senha     String
   createdAt DateTime @default(now())
+
+  // 🔗 Relações nomeadas corretamente
+  productionOrders ProductionOrder[] @relation("UsuarioToProductionOrders")
+  invoices         Invoice[]         @relation("UsuarioToInvoices")
 }
 
 model Product {
-  id            Int         @id @default(autoincrement())
-  code          String      @unique
-  name          String
-  type          ProductType
-  unit          String
-  currentStock  Float       @default(0)
-  reservedStock Float       @default(0)
-  minStock      Float       @default(0)
-  bom           BOM?        @relation("ProductToBOM")
-  materialsUsed BOMItem[]   @relation("MaterialToBOMItem")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id               Int               @id @default(autoincrement())
+  code             String            @unique
+  name             String
+  type             ProductType
+  unit             String
+  currentStock     Float             @default(0)
+  reservedStock    Float             @default(0)
+  minStock         Float             @default(0)
+  bom              BOM?              @relation("ProductToBOM")
+  materialsUsed    BOMItem[]         @relation("MaterialToBOMItem")
+  productionOrders ProductionOrder[]
+  invoiceItems     InvoiceItem[]
+  stockMovements   StockMovement[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 }
 
 model BOM {
@@ -49,12 +56,106 @@ model BOMItem {
   id         Int     @id @default(autoincrement())
   bomId      Int
   materialId Int
+  quantity   Float
   bom        BOM     @relation(fields: [bomId], references: [id])
   material   Product @relation("MaterialToBOMItem", fields: [materialId], references: [id])
-  quantity   Float
 }
 
+/**
+ * Ordem de Produção
+ */
+model ProductionOrder {
+  id           Int               @id @default(autoincrement())
+  productId    Int
+  product      Product           @relation(fields: [productId], references: [id])
+
+  usuarioId    Int
+  usuario      Usuario           @relation("UsuarioToProductionOrders", fields: [usuarioId], references: [id])
+
+  quantity     Float
+  produced     Float             @default(0)
+  status       ProductionStatus  @default(PLANEJADA)
+  createdAt    DateTime          @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  stockMovements StockMovement[]
+}
+
+/**
+ * Nota Fiscal
+ */
+model Invoice {
+  id         Int             @id @default(autoincrement())
+  type       InvoiceType
+  number     String           @unique
+  date       DateTime         @default(now())
+  supplier   String?
+  customer   String?
+  status     InvoiceStatus    @default(PENDENTE)
+
+  usuarioId  Int
+  usuario    Usuario          @relation("UsuarioToInvoices", fields: [usuarioId], references: [id])
+
+  items      InvoiceItem[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model InvoiceItem {
+  id         Int      @id @default(autoincrement())
+  invoiceId  Int
+  productId  Int
+  quantity   Float
+  value      Float
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+}
+
+/**
+ * Movimentação de Estoque
+ */
+model StockMovement {
+  id         Int          @id @default(autoincrement())
+  productId  Int
+  product    Product      @relation(fields: [productId], references: [id])
+  orderId    Int?
+  order      ProductionOrder? @relation(fields: [orderId], references: [id])
+  type       MovementType
+  quantity   Float
+  date       DateTime      @default(now())
+  notes      String?
+}
+
+/**
+ * Enums
+ */
 enum ProductType {
-  MP // Matéria-Prima
-  PA // Produto Acabado
+  MP
+  PA
+}
+
+enum ProductionStatus {
+  PLANEJADA
+  EM_PRODUCAO
+  PAUSADA
+  CONCLUIDA
+  CANCELADA
+}
+
+enum InvoiceType {
+  ENTRADA
+  SAIDA
+}
+
+enum InvoiceStatus {
+  PROCESSADA
+  PENDENTE
+  ERRO
+}
+
+enum MovementType {
+  ENTRADA
+  SAIDA
+  PRODUCAO
+  CONSUMO
 }

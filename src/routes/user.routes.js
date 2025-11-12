@@ -4,8 +4,8 @@ import { authenticateToken } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.post('/register', userController.register);
-router.post('/login', userController.login);
+router.post('/', userController.register);
+router.post('/', userController.login);
 
 // ✅ Rota protegida
 router.get('/', authenticateToken, userController.getAllUsers);
