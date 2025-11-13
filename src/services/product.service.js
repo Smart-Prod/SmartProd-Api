@@ -1,13 +1,26 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-export const createProduct = async (data) => {
-  const { code } = data;
+export const createProduct = async (data, usuarioId) => {
+  const { code, name, type, unit, currentStock, reservedStock, minStock } = data;
 
+  // 🔎 Verifica duplicidade
   const existing = await prisma.product.findUnique({ where: { code } });
-  if (existing) throw new Error('Código de produto já está em uso.');
+  if (existing) throw new Error("Código de produto já está em uso.");
 
-  return prisma.product.create({ data });
+  // ✅ Criação correta
+  return prisma.product.create({
+    data: {
+      code,
+      name,
+      type,
+      unit,
+      currentStock,
+      reservedStock,
+      minStock,
+      usuarioId, // ✅ dentro de data, não fora!
+    },
+  });
 };
 
 export const getAllProducts = async () => {
@@ -21,6 +34,6 @@ export const getProductById = async (id) => {
     where: { id },
     include: { bom: true },
   });
-  if (!product) throw new Error('Produto não encontrado.');
+  if (!product) throw new Error("Produto não encontrado.");
   return product;
 };
